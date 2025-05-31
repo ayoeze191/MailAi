@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { io } from "socket.io-client";
+
 import {
   Card,
   CardContent,
@@ -67,6 +69,24 @@ export default function ChatUI() {
       setMessage("");
     }
   };
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const socket = io(`http://localhost:3000?token=${token}`);
+
+    socket.on("connect", () => {
+      console.log("Connected with id:", socket.id);
+      socket.emit("message", "Hello server!");
+    });
+
+    socket.on("message", (data) => {
+      console.log("Received from server:", data);
+    });
+
+    // Clean up the socket connection when component unmounts
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-2 sm:p-4">
@@ -79,37 +99,15 @@ export default function ChatUI() {
                 <Menu className="h-5 w-5" />
               </Button>
               <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
-                <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                {/* <AvatarImage src="/placeholder.svg?height=40&width=40" /> */}
                 <AvatarFallback>JD</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
-                <h3 className="font-semibold text-sm sm:text-base">John Doe</h3>
+                <h3 className="font-semibold text-sm sm:text-base">Eazy</h3>
                 <p className="text-xs sm:text-sm text-green-600">Online</p>
               </div>
             </div>
-            <div className="flex items-center space-x-1 sm:space-x-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 sm:h-10 sm:w-10"
-              >
-                <Phone className="h-4 w-4 sm:h-5 sm:w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 sm:h-10 sm:w-10"
-              >
-                <Video className="h-4 w-4 sm:h-5 sm:w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 sm:h-10 sm:w-10"
-              >
-                <MoreVertical className="h-4 w-4 sm:h-5 sm:w-5" />
-              </Button>
-            </div>
+            <div className="flex items-center space-x-1 sm:space-x-2"></div>
           </CardHeader>
 
           {/* Messages */}
@@ -130,7 +128,7 @@ export default function ChatUI() {
                 >
                   {msg.sender === "other" && (
                     <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
-                      <AvatarImage src="/placeholder.svg?height=32&width=32" />
+                      {/* <AvatarImage src="/placeholder.svg?height=32&width=32" /> */}
                       <AvatarFallback>JD</AvatarFallback>
                     </Avatar>
                   )}

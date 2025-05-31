@@ -1,47 +1,46 @@
-import { NextResponse } from "next/server";
+// import dbConnect from "@/lib/db";
+
 import UserModel from "@/model/User.model";
-import { connectDB } from "@/lib/db";
 import { signLogin } from "@/jwt/sign";
 
-export async function POST(request) {
-  await connectDB();
-  const body = await request.json();
-  console.log(body);
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
 
-  const user = await UserModel.findOne({ email: body.email });
+  // await dbConnect();
+
+  const { email, password } = req.body;
+
+  const user = await UserModel.findOne({ email });
 
   if (!user) {
-    return NextResponse.json(
-      { error: "You do not have an account with us" },
-      { status: 404 }
-    );
+    return res.status(404).json({
+      error: "You do not have an account with us",
+    });
   }
 
   if (!user.password) {
-    return NextResponse.json(
-      { error: "This account uses Google login. Use Google Sign-In." },
-      { status: 400 }
-    );
+    return res.status(400).json({
+      error: "This account uses Google login. Use Google Sign-In.",
+    });
   }
-  const correctPassword = await user.comparePassword(body.password);
+
+  const correctPassword = await user.comparePassword(password);
 
   if (!correctPassword) {
-    return NextResponse.json(
-      { error: "Invalid email or password" },
-      { status: 401 }
-    );
+    return res.status(401).json({
+      error: "Invalid email or password",
+    });
   }
 
-  const tokenData = signLogin(user._id, user.email);
+  const token = signLogin(user._id, user.email);
 
-  return NextResponse.json(
-    {
-      message: "Login successful",
-      data: {
-        token: tokenData,
-        user,
-      },
+  return res.status(200).json({
+    message: "Login successful",
+    data: {
+      token,
+      user,
     },
-    { status: 200 }
-  );
+  });
 }
