@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { io } from "socket.io-client";
@@ -15,43 +15,37 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, Menu, Phone, Video, MoreVertical } from "lucide-react";
 
 export default function ChatUI() {
+  const socketRef = useRef(null);
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([
-    {
-      id: "1",
-      content: "Hey! How are you doing today?",
-      sender: "other",
-      timestamp: "10:30 AM",
-    },
-    {
-      id: "2",
-      content:
-        "I'm doing great! Just working on some new projects. How about you?",
-      sender: "user",
-      timestamp: "10:32 AM",
-    },
-    {
-      id: "3",
-      content:
-        "That sounds exciting! I'd love to hear more about what you're working on.",
-      sender: "other",
-      timestamp: "10:33 AM",
-    },
-    {
-      id: "4",
-      content:
-        "I'm building a responsive chat application with React and Tailwind CSS. It's been really fun to work on.",
-      sender: "user",
-      timestamp: "10:35 AM",
-    },
-    {
-      id: "5",
-      content:
-        "That's awesome! Responsive design can be challenging but so rewarding when it works well across all devices.",
-      sender: "other",
-      timestamp: "10:36 AM",
-    },
-  ]);
+  const [messages, setMessages] = useState([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const socket = io(`http://localhost:3000?token=${token}`);
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      // console.log("Connected with id:", socket.id);
+    });
+
+    socket.on("message", (aiReply) => {
+      console.log("🤖 AI says:", aiReply);
+      const newMessage = {
+        id: Date.now().toString(),
+        content: aiReply,
+        sender: "other",
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const handleSendMessage = (e) => {
     e.preventDefault();
@@ -65,28 +59,16 @@ export default function ChatUI() {
           minute: "2-digit",
         }),
       };
-      setMessages([...messages, newMessage]);
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+
+      // 🔥 Send message to server
+      if (socketRef.current) {
+        socketRef.current.emit("message", message);
+      }
+
       setMessage("");
     }
   };
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const socket = io(`http://localhost:3000?token=${token}`);
-
-    socket.on("connect", () => {
-      console.log("Connected with id:", socket.id);
-      socket.emit("message", "Hello server!");
-    });
-
-    socket.on("message", (data) => {
-      console.log("Received from server:", data);
-    });
-
-    // Clean up the socket connection when component unmounts
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-2 sm:p-4">
